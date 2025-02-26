@@ -1,0 +1,19 @@
+140x140
+
+# "Draw two squares with width 10 and 100 of space between them."
+push 10
+dup
+addv 110
+swap
+
+color red
+
+cursor $ $
+rectangle 10 10
+
+pop
+
+cursor $ $
+rectangle 10 10
+
+pop

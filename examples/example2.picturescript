@@ -1,0 +1,16 @@
+150x150
+
+color white
+rectangle 150 150
+
+# "Draw tree circles with opacity with different colors."
+color #ff00007f
+ellipse 100 100
+
+cursor 50 0
+color #00ff007f
+ellipse 100 100
+
+cursor 25 50
+color #0000ff7f
+ellipse 100 100

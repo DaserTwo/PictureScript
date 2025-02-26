@@ -1,0 +1,9 @@
+100x100
+
+# "Draw a PacMan"
+color yellow
+arc 100 100 30 -30
+
+color black
+cursor 60 25
+ellipse 5 5

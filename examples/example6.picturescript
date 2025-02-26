@@ -1,0 +1,11 @@
+10x10
+
+# "Draw a square which is green if 40 > 10 and red otherwise"
+push 40
+gtv 10
+if $ 1 {
+	color green
+} else {
+	color red
+}
+rectangle 10 10

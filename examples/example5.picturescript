@@ -1,0 +1,27 @@
+150x150
+
+color white
+rectangle 150 150
+
+# "Draw tree circles with opacity with different colors."
+
+push 255
+push 0
+dup
+
+color rgba $1 $2 $3 127
+ellipse 100 100
+
+rot
+
+cursor 50 0
+color rgba $1 $2 $3 127
+ellipse 100 100
+
+rot
+
+cursor 25 50
+color rgba $1 $2 $3 127
+ellipse 100 100
+
+pop pop pop

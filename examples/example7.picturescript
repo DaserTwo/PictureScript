@@ -1,0 +1,59 @@
+100x100
+
+# "Rally common animation frquently uses as an example of 'how to create an animation in pillow'"
+
+animation 100 50
+
+reset
+
+# "Swap colors when we reach half of the frames"
+n
+divv 2
+dup
+iota
+gt
+if $ 1 {
+	color red
+	rectangle 100 100
+	color orange
+} else {
+	color orange
+	rectangle 100 100
+	color red
+}
+pop
+
+# "We need to corect iota"
+dup
+iota
+gt
+if $ 1 {
+	pop
+	n
+	divv 2
+	iota
+	sub
+} else {
+	pop
+	iota
+}
+
+# "Calculate width of our square"
+push 150
+swap
+addv 1
+mul
+div
+
+# "Calculate where to put the cursor so the square is in the center"
+dup
+push 100
+else swap
+sub
+divv 2
+
+cursor $ $
+pop
+
+ellipse $ $
+pop

@@ -1,0 +1,118 @@
+800x400
+
+image "../cmppng/test_img1/i1.jpg"
+
+color white
+cursor 10 10
+rectangle 100 100
+
+color red
+mode OuTlInE
+cursor 200 200
+rectangle 150 150
+
+color blue
+width 10
+cursor 400 50
+rectangle 50 50
+
+color #00ff0055
+mode fill
+cursor 75 220
+ellipse 450 200
+
+width 12
+color magenta
+cursor 120 110
+text "I'm the PacMan, bro!"
+
+width 18
+font LiberationSerif-BoldItalic.ttf
+align center
+
+push "I'm bitting, bro!\nDon't say\nI did'n warn ye!"
+
+color #333
+cursor 213 213
+text $
+
+color rgb 255 0 85
+# "cursor 210 210"
+move -3 -3
+text $
+
+pop
+
+animation 10 10
+
+iota
+mulv 5
+dup
+addv 120
+
+width 1
+color yellow
+cursor $ 10
+
+n
+divv 2
+iota
+lt
+
+if $ 1 {
+	push 90
+	n
+	divv 2
+	swap
+	div
+	iota
+	mul
+	divv 2
+	addv 1
+	dup
+	mulv -1
+} else {
+	push 90
+	dup
+	n
+	divv 2
+	swap
+	div
+	iota
+	divv 2
+	mul
+	swap
+	sub
+	divv 2
+	addv 1
+	dup
+	mulv -1
+}
+
+arc 100 100 $2 $1
+
+pop pop pop
+
+pop
+addv 170
+
+color black
+cursor $ 30
+ellipse 8 8
+
+pop
+
+iota
+n divv 2
+sub
+gtv 0
+
+cursor 20 20
+if $ 1 {
+	color red
+} else {
+	color gray
+}
+rectangle 20 20
+
+pop
