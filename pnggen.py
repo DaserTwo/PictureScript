@@ -182,6 +182,9 @@ def parse_string(script):
     else:
         return [script[0]]
 
+def unwrap_string(text):
+    return ' '.join(text).replace('\\w', ' ').replace('\\n', '\n').replace('\\\\', '\\')
+
 def render_img():
     global image
     global color
@@ -290,7 +293,7 @@ def render_img():
             case 'font':
                 text = parse_string(script[slice(i + 1, len(script))])
                 i += len(text)
-                text = ' '.join(text).replace('\\w', ' ').replace('\\n', '\n').replace('\\\\', '\\')
+                text = unwrap_string(text)
                 font = text
             case 'mode':
                 script[i + 1] = script[i + 1].lower()
@@ -351,13 +354,13 @@ def render_img():
             case 'text':
                 text = parse_string(script[slice(i + 1, len(script))])
                 i += len(text)
-                text = ' '.join(text).replace('\\w', ' ').replace('\\n', '\n').replace('\\\\', '\\')
+                text = unwrap_string(text)
                 f = ImageFont.truetype(font, width)
                 draw.multiline_text(cursor, text, fill=color, anchor=anchor, align=align, font=f, font_size=width)
             case 'image':
                 text = parse_string(script[slice(i + 1, len(script))])
                 i += len(text)
-                text = ' '.join(text).replace('\\w', ' ').replace('\\n', '\n').replace('\\\\', '\\')
+                text = unwrap_string(text)
                 img = Image.open(text)
                 image = image.convert('RGBA')
                 image.alpha_composite(img.convert('RGBA'), dest=cursor)
@@ -458,6 +461,21 @@ def render_img():
                 b = parse_int([script[i + 1]])
                 i += 1
                 stack.append(a % b)
+            # String
+            case 'cat':
+                if len(stack) < 2:
+                    raise Exception('Not enought elements on stack to perform cat.')
+                a = str(stack.pop(len(stack) - 1))
+                b = str(stack.pop(len(stack) - 1))
+                stack.append(a + b)
+            case 'catv':
+                if len(stack) < 1:
+                    raise Exception('Not enought elements on stack to perform catv.')
+                a = str(stack.pop(len(stack) - 1))
+                b = parse_string(script[slice(i + 1, len(script))])
+                i += len(b)
+                b = ' '.join(b).replace('\\w', ' ').replace('\\n', '\n').replace('\\\\', '\\')
+                stack.append(a + b)
             # Logic
             case 'eq':
                 if len(stack) < 2:

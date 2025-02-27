@@ -27,7 +27,7 @@ A value in ImageScript may be one of the following:
 
 ## Commands
 
-There are several types of commands: coments, state, drawing, stack, match, logic, control-flow and animation commands. The command arguments will be given in a form [NAME:TYPE] there NAME will be used later in description and TYPE is one of these: INT, STRING, COLOR, ANY or a keyword-list separated by '|'.
+There are several types of commands: coments, state, drawing, stack, match, string, logic, control-flow and animation commands. The command arguments will be given in a form [NAME:TYPE] there NAME will be used later in description and TYPE is one of these: INT, STRING, COLOR, ANY or a keyword-list separated by '|'.
 
 ### The coment command (#... [s:STRING])
 
@@ -349,6 +349,12 @@ Divides $ by $2 or v and pushes result to the stack. Operands will be consumed.
 #### mod, modv [v:INT]
 
 Takes the modulo of $ and $2 or v and pushes result to the stack. Operands will be consumed.
+
+### String commands
+
+#### cat, catv [v:STRING]
+
+Concatinates two strings.
 
 ### Logic commands
 
