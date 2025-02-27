@@ -1,0 +1,29 @@
+130x50
+
+# "Print 'Hello World' and 'Bye World'"
+
+width 20
+color white
+cursor 10 0
+
+set world "\wWorld"
+set bye Bye
+set hello Hello
+
+get world
+get hello
+
+cat
+
+text $
+pop
+
+get world
+get bye
+
+cat
+
+move 0 25
+text $
+
+pop

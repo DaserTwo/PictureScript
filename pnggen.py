@@ -20,6 +20,7 @@ mode = 'fill'
 cursor = (0, 0)
 
 stack = []
+variables = {}
 animation = None
 
 class Animation:
@@ -195,6 +196,7 @@ def render_img():
     global mode
     global cursor
     global stack
+    global variables
     global animation
 
     image = None
@@ -207,6 +209,7 @@ def render_img():
     cursor = (0, 0)
 
     stack = []
+    variables = {}
     animation = None
     scope = 0
     
@@ -395,6 +398,19 @@ def render_img():
                 stack.append(a)
                 stack.append(c)
                 stack.append(b)
+            # Variables
+            case 'set':
+                name = parse_string(script[slice(i + 1, len(script))])
+                i += len(name)
+                name = unwrap_string(name)
+                value = parse_string(script[slice(i + 1, len(script))])
+                i += len(value)
+                variables[name] = ' '.join(value)
+            case 'get':
+                name = parse_string(script[slice(i + 1, len(script))])
+                i += len(name)
+                name = unwrap_string(name)
+                stack.append(variables[name])
             # Math
             case 'add':
                 if len(stack) < 2:
