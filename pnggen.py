@@ -22,6 +22,7 @@ cursor = (0, 0)
 stack = []
 variables = {}
 animation = None
+labels = {}
 
 class Animation:
     def __init__(self, image, i, duration, n):
@@ -215,6 +216,9 @@ def is_valid_id(c):
     return c.isalnum() or c in ['-', '_', '+', '=', '*', '&', '^', '%', '!', '|', ':', ';', '.', ',', '?', '<', '>', '~']
 
 def tokenize(script):
+    global labels
+    labels = {}
+
     tokens = []
     count = len(script)
     i = 0
@@ -278,6 +282,18 @@ def tokenize(script):
             else:
                 raise Exception('Bad token, expected COLOR or comment but got: ' + tok)
             continue
+        elif script[i] == '@':
+            tok = '@'
+            i += 1
+            while i < count and is_valid_id(script[i]):
+                tok += script[i]
+                i += 1
+            if len(tok) == 1:
+                raise Exception('Unnamed labels are not supported')
+            if tok in labels:
+                raise Exception('Cannot define two labels with the same name: ' + tok)
+            labels[tok] = len(tokens)
+            continue
         elif script[i] in ['{', '}']:
             tokens.append(Token(script[i], script[i]))
         else:
@@ -297,6 +313,7 @@ def render_img():
     global stack
     global variables
     global animation
+    global labels
 
     image = None
     color = 'black'
@@ -642,8 +659,11 @@ def render_img():
                             elif script[i].type == '{':
                                 x += 1
                             i += 1
-                        if i >= len(script) and not script[i - 1].type == '}':
-                            raise Exception('Found unclosed scope')
+                        if i >= len(script):
+                            if not script[i - 1].type == '}':
+                                raise Exception('Found unclosed scope')
+                            else:
+                                continue
                         if script[i].type == 'ID' and script[i].text == 'else':
                             i += 1
                         continue
@@ -662,6 +682,18 @@ def render_img():
                     if i >= len(script) and not script[i - 1].type == '}':
                         raise Exception('Found unclosed scope')
                     continue
+            case 'goto':
+                label = parse_string(i + 1, script)
+                i = labels['@' + label]
+                continue
+            case 'jump':
+                ni = parse_int(i + 1, script)
+                i = ni
+                continue
+            case 'label':
+                label = parse_string(i + 1, script)
+                i += 1
+                stack.append(labels['@' + label])
             # Animation
             case 'animation':
                 if animation is not None:

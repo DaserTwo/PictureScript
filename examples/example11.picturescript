@@ -1,0 +1,24 @@
+255x10
+
+# "Gray-scale"
+
+push 0
+dup
+
+@L1
+
+pop
+
+color rgb $ $ $
+rectangle 10 10
+move 10 0
+
+dup
+
+ltv 255
+if $ 1 {
+	pop
+	addv 10
+	label L1
+	jump $
+}

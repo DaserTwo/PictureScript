@@ -394,6 +394,10 @@ Pushes 1 if the first operant is less than the last, 0 otherwise.
 
 Stand-alone curly-brackets have no inpact on the code execution, however every closing must have an opening.
 
+#### Label @N
+
+A label is an abstract token (that means it is deleted by tokenizer) that marks a place is the script. You can make a label anywhere you want.
+
 #### if [a:INT] [b:INT]
 
 If a is equal to b, it does nothing, else it skips next token or entire scope and if it encouners else it lets its scope to execute.
@@ -421,6 +425,64 @@ else {
 	rectangle 10 10
 }
 ```
+
+#### goto [l:STRING]
+
+Jumps to the place marked by label l.
+
+``` ImageScript
+# "Gray-scale"
+
+push 0
+
+@L1
+
+color rgb $ $ $
+rectangle 10 10
+move 10 0
+
+dup
+
+ltv 255
+if $ 1 {
+	pop
+	addv 10
+	goto L1
+}
+```
+
+#### jump [i:INT]
+
+Jumps to the token i. You should not use that unless you are using label command.
+
+``` ImageScript
+# "Gray-scale"
+
+push 0
+dup
+
+@L1
+
+pop
+
+color rgb $ $ $
+rectangle 10 10
+move 10 0
+
+dup
+
+ltv 255
+if $ 1 {
+	pop
+	addv 10
+	label L1
+	jump $
+}
+```
+
+#### label [l:STRING]
+
+Pushes the index of token marked by label l.
 
 ### Animation commands
 
