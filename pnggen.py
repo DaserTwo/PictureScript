@@ -185,7 +185,7 @@ def parse_color(i, script):
         raise Exception('Expected color, got: ' + text)
 
 def parse_string(i, script):
-    if script[i].type in ['ID', 'STR']:
+    if script[i].type in ['ID', 'STR', 'NUM']:
         return script[i].text
     elif script[i].type == '$':
         return str(get_stack(script[i].text))
@@ -710,7 +710,7 @@ def render_img():
                     raise Exception('Cannot get frame count (n) without animation context...')
                 stack.append(animation.n)
             case _:
-                raise Exception('Unsupported command: ' + script[i])
+                raise Exception('Unsupported command: ' + str(script[i]))
         i += 1
         print(stack)
         if i >= len(script) and animation is not None and animation.iota < animation.n:
