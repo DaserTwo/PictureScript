@@ -36,6 +36,13 @@ class Animation:
         self.iota += 1
         return self.base.copy()
 
+class Token:
+    def __init__(self, type, text):
+        self.type = type
+        self.text = text
+    def __str__(self):
+        return 'Token{' + self.type + ': ' + self.text + '}'
+
 def load_script():
     global input_file
     
@@ -110,81 +117,173 @@ def show_img():
         image_photo = ImageTk.PhotoImage(image.resize(fit_image(image.width, image.height, canvas.winfo_width(), canvas.winfo_height())))
         image_id = canvas.create_image(0, 0, anchor=tk.NW, image=image_photo)
 
-def parse_color(script):
-    global color
-    if script[0][0] == '#':
-        if len(script[0]) - 1 not in [3, 4, 6, 8]:
-            raise Exception('Bad color hex: ' + script[0])
-        color = script[0]
-        return 1
-    if script[0].lower() == 'rgb':
-        r = parse_int([script[1]])
-        g = parse_int([script[2]])
-        b = parse_int([script[3]])
-        color = 'rgb(' + ','.join(list(map(str, [r, g, b]))) + ')'
-        return 4
-    if script[0].lower() == 'rgba':
-        r = parse_int([script[1]])
-        g = parse_int([script[2]])
-        b = parse_int([script[3]])
-        a = parse_int([script[4]])
-        color = 'rgba(' + ','.join(list(map(str, [r, g, b, a]))) + ')'
-        return 5
-    try:
-        ImageColor.getcolor(script[0], 'RGBA')
-        color = script[0]
-        return 1
-    except:
-        raise Exception('Expected color, got: ' + script[0])
+def get_stack(text):
+    n = 1
+    if len(text) > 1:
+        n = int(text[1:])
+    if len(stack) < n:
+        return 'NULL'
+    return stack[len(stack) - n]
 
-def parse_int(script):
-    text = script[0]
-    if text[0] == '$':
-        if len(stack) > 0:
-            n = 1
-            if len(script[0]) > 1:
-                n = int(script[0][1:])
-            text = stack[len(stack) - n]
-        else:
-            text = '0'
-    try:
-        v = int(text)
-        return v
-    except:
-        raise Exception('Excepted int, but got: ' + text)
+def parse_int(i, script):
+    if script[i].type == 'NUM':
+        return int(script[i].text)
+    elif script[i].type == '$':
+        text = get_stack(script[i].text)
+        if text == 'NULL':
+            return 0
+        try:
+            return int(text)
+        except:
+            raise Exception('Excepted int, but got (stack): ' + text)
+    else:
+        raise Exception('Excepted int, but got: ' + str(script[i]))
 
-def parse_vec2(script):
-    x = parse_int([script[0]])
-    y = parse_int([script[1]])
+def parse_vec2(i, script):
+    x = parse_int(i, script)
+    y = parse_int(i + 1, script)
     return (x, y)
 
-def parse_string(script):
-    if script[0][0] == '"':
-        i = 0
-        out = []
-        while i < len(script) and not script[i].endswith('"'):
-            out.append(script[i])
-            i +=  1
-        if i >= len(script):
-            raise Exception('Tried to parse string, but did not found end...')
-        out.append(script[i])
-        out[0] = out[0][slice(1, len(out[0]))]
-        if out[len(out) - 1].endswith('"'):
-            out[len(out) - 1] = out[len(out) - 1][slice(0, -1)]
-        return out
-    elif script[0][0] == '$':
-        if len(stack) > 0:
-            n = 1
-            if len(script[0]) > 1:
-                n = int(script[0][1:])
-            return [str(stack[len(stack) - n])]
-        else:
-            return ['NULL']
-    else:
-        return [script[0]]
+def parse_vec3(i, script):
+    x = parse_int(i, script)
+    y = parse_int(i + 1, script)
+    z = parse_int(i + 2, script)
+    return (x, y, z)
 
-def unwrap_string(text):
-    return ' '.join(text).replace('\\w', ' ').replace('\\n', '\n').replace('\\\\', '\\')
+def parse_vec4(i, script):
+    x = parse_int(i, script)
+    y = parse_int(i + 1, script)
+    z = parse_int(i + 2, script)
+    w = parse_int(i + 3, script)
+    return (x, y, z, w)
+
+def parse_color(i, script):
+    if i >= len(script):
+        raise Exception('Excepted color, but reach EOF.')
+
+    if script[i].type == 'COL':
+        color = script[i].text
+        return (1, color)
+    if script[i].type == 'ID':
+        if script[i].text.lower() == 'rgb':
+            (r, g, b) = parse_vec3(i + 1, script)
+            color = 'rgb(' + ','.join(list(map(str, [r, g, b]))) + ')'
+            return (4, color)
+        if script[i].text.lower() == 'rgba':
+            (r, g, b, a) = parse_vec4(i + 1, script)
+            color = 'rgba(' + ','.join(list(map(str, [r, g, b, a]))) + ')'
+            return (5, color)
+    try:
+        text = script[i].text
+        if script[i].type == '$':
+            text = get_stack(text)
+        ImageColor.getcolor(text, 'RGBA')
+        color = text
+        return (1, color)
+    except:
+        raise Exception('Expected color, got: ' + text)
+
+def parse_string(i, script):
+    if script[i].type in ['ID', 'STR']:
+        return script[i].text
+    elif script[i].type == '$':
+        return str(get_stack(script[i].text))
+    else:
+        raise Exception('Excepted string, but got: ' + str(script[i]))
+
+def parse_special(i, script, accept):
+    if script[i].type in ['ID', 'STR', '$']:
+        text = script[i].text.lower()
+        if script[i].type == '$':
+            text = get_stack(text)
+        if text in accept:
+            return text
+        else:
+            raise Exception('Unexpected special, got: ' + str(script[i]) + ', but expected one of: ' + str(accept))
+    else:
+        raise Exception('Unexpected token: ' + str(script[i]))
+
+def parse_any(i, script):
+    if script[i].type in ['ID', 'STR', 'NUM', 'COL']:
+        return script[i].text
+    elif script[i].type == '$':
+        return get_stack(script[i].text)
+    else:
+        raise Exception('Excepted ANY, but got: ' + str(script[i]))
+
+def is_valid_id(c):
+    return c.isalnum() or c in ['-', '_', '+', '=', '*', '&', '^', '%', '!', '|', ':', ';', '.', ',', '?', '<', '>', '~']
+
+def tokenize(script):
+    tokens = []
+    count = len(script)
+    i = 0
+    while i < count:
+        while i < count and script[i].isspace():
+            i += 1
+        if i >= count:
+            break
+        elif is_valid_id(script[i]):
+            tok = ''
+            while i < count and is_valid_id(script[i]):
+                tok += script[i]
+                i += 1
+            tokens.append(Token('NUM' if tok.isnumeric() or (tok[0] == '-' and tok[1:].isnumeric()) else 'ID', tok))
+        elif script[i] == '"':
+            tok = ''
+            i += 1
+            while i < count and not script[i] == '"':
+                if script[i] == '\\' and i + 1 < count:
+                    match script[i + 1]:
+                        case 'w':
+                            tok += ' '
+                        case 't':
+                            tok += '\t'
+                        case '"':
+                            tok += '"'
+                        case 'n':
+                            tok += '\n'
+                        case 'r':
+                            tok += '\r'
+                        case '\\':
+                            tok += '\\'
+                        case _:
+                            tok += '\\'
+                            i -= 1
+                    i += 1
+                else:
+                    tok += script[i]
+                i += 1
+            if not script[i] == '"':
+                raise Exception('Found not ending string.')
+            tokens.append(Token('STR', tok))
+        elif script[i] == '$':
+            tok = '$'
+            i += 1
+            while i < count and script[i].isnumeric():
+                tok += script[i]
+                i += 1
+            tokens.append(Token('$', tok))
+            continue
+        elif script[i] == '#':
+            tok = '#'
+            i += 1
+            while i < count and (script[i].isnumeric() or script[i].lower() in ['a', 'b', 'c', 'd', 'e', 'f']):
+                tok += script[i]
+                i += 1
+            if len(tok) == 1:
+                tokens.append(Token('#', tok))
+            elif len(tok) in [4, 5, 7, 9]:
+                tokens.append(Token('COL', tok))
+            else:
+                raise Exception('Bad token, expected COLOR or comment but got: ' + tok)
+            continue
+        elif script[i] in ['{', '}']:
+            tokens.append(Token(script[i], script[i]))
+        else:
+            raise Exception('Unparsable: ' + script[i])
+        i += 1
+    return tokens
 
 def render_img():
     global image
@@ -220,9 +319,9 @@ def render_img():
     with open(input_file, 'r') as script_file:
         script = script_file.read()
 
-    script = script.split()
+    script = tokenize(script)
 
-    WxH = script[0].split('x')
+    WxH = script[0].text.split('x')
     if not len(WxH) == 2:
         raise Exception('Excepted first token to be in format WxH to describe the image size.')
 
@@ -234,13 +333,28 @@ def render_img():
     i = 1
     while i < len(script):
         print(script[i])
-        # Coments
-        if script[i][0] == '#':
-            text = parse_string(script[slice(i + 1, len(script))])
-            i += len(text) + 1
-            print(' '.join(text))
-            continue
-        match script[i]:
+        
+        match script[i].type:
+            case '#':
+                text = script[i + 1].text
+                print(text)
+                i += 2
+                continue
+            case '{':
+                scope += 1
+                i += 1
+                continue
+            case '}':
+                if scope <= 0:
+                    raise Exception('Cannot close global scope.')
+                scope -= 1
+                i += 1
+                continue
+            case 'ID':
+                pass
+            case _:
+                raise Exception('Unexpected token: ' + str(script[i]))
+        match script[i].text:
             # State
             case 'reset':
                 color = 'black'
@@ -251,18 +365,16 @@ def render_img():
                 mode = 'fill'
                 cursor = (0, 0)
             case 'color':
-                i += parse_color(script[slice(i + 1, len(script))])
+                (n, c) = parse_color(i + 1, script)
+                color = c
+                i += n
             case 'width':
-                width = parse_int(script[slice(i + 1, len(script))])
+                width = parse_int(i + 1, script)
                 i += 1
             case 'anchor':
-                vertical = script[i + 1].lower()
-                horizontal = script[i + 2].lower()
+                vertical = parse_special(i + 1, script, ['left', 'middle', 'right', 'l', 'm', 'r'])
+                horizontal = parse_special(i + 2, script, ['ascender', 'top', 'middle', 'baseline', 'bottom', 'descender', 'a', 't', 'm', 's', 'b', 'd'])
                 i += 2
-                if vertical not in ['left', 'middle', 'right', 'l', 'm', 'r']:
-                    raise Exception('Bad vertical anchor, got: ' + vertical)
-                if horizontal not in ['ascender', 'top', 'middle', 'baseline', 'bottom', 'descender', 'a', 't', 'm', 's', 'b', 'd']:
-                    raise Exception('Bad horizontal anchor, got: ' + horizontal)
                 match vertical:
                     case 'left':
                         anchor = 'l'
@@ -287,39 +399,30 @@ def render_img():
                         anchor += 'd'
                     case _:
                         anchor += horizontal
-                print((vertical, horizontal), anchor)
             case 'align':
-                align = script[i + 1].lower()
+                align = parse_special(i + 1, script, ['left', 'center', 'right'])
                 i += 1
-                if align not in ['left', 'center', 'right']:
-                    raise Exception('Bad aligment, got: ' + align)
             case 'font':
-                text = parse_string(script[slice(i + 1, len(script))])
-                i += len(text)
-                text = unwrap_string(text)
-                font = text
+                font = parse_string(i + 1, script)
+                i += 1
             case 'mode':
-                script[i + 1] = script[i + 1].lower()
-                if script[i + 1] in ['fill', 'outline']:
-                    mode = script[i + 1]
-                    i += 1
-                else:
-                    raise Exception('Bad mode name: ' + script[i + 1])
+                mode = parse_special(i + 1, script, ['fill', 'outline'])
+                i += 1
             case 'cursor':
-                cursor = parse_vec2(script[slice(i + 1, len(script))])
+                cursor = parse_vec2(i + 1, script)
                 i += 2
             case 'move':
-                (x, y) = parse_vec2(script[slice(i + 1, len(script))])
+                (x, y) = parse_vec2(i + 1, script)
                 i += 2
                 (cx, cy) = cursor
                 cursor = (cx + x, cy + y)
             # Drawing
             case 'line':
-                p = parse_vec2(script[slice(i + 1, len(script))])
+                p = parse_vec2(i + 1, script)
                 i += 2
                 draw.line([cursor, p], fill=color, width=width)
             case 'rectangle':
-                (w, h) = parse_vec2(script[slice(i + 1, len(script))])
+                (w, h) = parse_vec2(i + 1, script)
                 i += 2
                 (x, y) = cursor
                 match mode:
@@ -330,7 +433,7 @@ def render_img():
                     case _:
                         raise Exception('Unreachable: Bad mode: ' + mode)
             case 'ellipse':
-                (w, h) = parse_vec2(script[slice(i + 1, len(script))])
+                (w, h) = parse_vec2(i + 1, script)
                 i += 2
                 (x, y) = cursor
                 match mode:
@@ -341,10 +444,8 @@ def render_img():
                     case _:
                         raise Exception('Unreachable: Bad mode: ' + mode)
             case 'arc':
-                (w, h) = parse_vec2(script[slice(i + 1, len(script))])
-                i += 2
-                (start, end) = parse_vec2(script[slice(i + 1, len(script))])
-                i += 2
+                (w, h, start, end) = parse_vec4(i + 1, script)
+                i += 4
                 (x, y) = cursor
                 match mode:
                     case 'fill':
@@ -355,15 +456,13 @@ def render_img():
                     case _:
                         raise Exception('Unreachable: Bad mode: ' + mode)
             case 'text':
-                text = parse_string(script[slice(i + 1, len(script))])
-                i += len(text)
-                text = unwrap_string(text)
+                text = parse_string(i + 1, script)
+                i += 1
                 f = ImageFont.truetype(font, width)
                 draw.multiline_text(cursor, text, fill=color, anchor=anchor, align=align, font=f, font_size=width)
             case 'image':
-                text = parse_string(script[slice(i + 1, len(script))])
-                i += len(text)
-                text = unwrap_string(text)
+                text = parse_string(i + 1, script)
+                i += 1
                 img = Image.open(text)
                 image = image.convert('RGBA')
                 image.alpha_composite(img.convert('RGBA'), dest=cursor)
@@ -371,9 +470,8 @@ def render_img():
                 draw = ImageDraw.Draw(image, 'RGBA')
             # Stack
             case 'push':
-                text = parse_string(script[slice(i + 1, len(script))])
-                i += len(text)
-                text = ' '.join(text)
+                text = parse_any(i + 1, script)
+                i += 1
                 stack.append(text)
             case 'pop':
                 if len(stack) > 0:
@@ -400,16 +498,13 @@ def render_img():
                 stack.append(b)
             # Variables
             case 'set':
-                name = parse_string(script[slice(i + 1, len(script))])
-                i += len(name)
-                name = unwrap_string(name)
-                value = parse_string(script[slice(i + 1, len(script))])
-                i += len(value)
-                variables[name] = ' '.join(value)
+                name = parse_string(i + 1, script)
+                value = parse_any(i + 2, script)
+                i += 2
+                variables[name] = value
             case 'get':
-                name = parse_string(script[slice(i + 1, len(script))])
-                i += len(name)
-                name = unwrap_string(name)
+                name = parse_string(i + 1, script)
+                i += 1
                 stack.append(variables[name])
             # Math
             case 'add':
@@ -422,7 +517,7 @@ def render_img():
                 if len(stack) < 1:
                     raise Exception('Not enought elements on stack to perform addv.')
                 a = int(stack.pop(len(stack) - 1))
-                b = parse_int([script[i + 1]])
+                b = parse_int(i + 1, script)
                 i += 1
                 stack.append(a + b)
             case 'sub':
@@ -435,7 +530,7 @@ def render_img():
                 if len(stack) < 1:
                     raise Exception('Not enought elements on stack to perform subv.')
                 a = int(stack.pop(len(stack) - 1))
-                b = parse_int([script[i + 1]])
+                b = parse_int(i + 1, script)
                 i += 1
                 stack.append(a - b)
             case 'mul':
@@ -448,7 +543,7 @@ def render_img():
                 if len(stack) < 1:
                     raise Exception('Not enought elements on stack to perform mulv.')
                 a = int(stack.pop(len(stack) - 1))
-                b = parse_int([script[i + 1]])
+                b = parse_int(i + 1, script)
                 i += 1
                 stack.append(a * b)
             case 'div':
@@ -461,7 +556,7 @@ def render_img():
                 if len(stack) < 1:
                     raise Exception('Not enought elements on stack to perform divv.')
                 a = int(stack.pop(len(stack) - 1))
-                b = parse_int([script[i + 1]])
+                b = parse_int(i + 1, script)
                 i += 1
                 stack.append(a // b)
             case 'mod':
@@ -474,7 +569,7 @@ def render_img():
                 if len(stack) < 1:
                     raise Exception('Not enought elements on stack to perform modv.')
                 a = int(stack.pop(len(stack) - 1))
-                b = parse_int([script[i + 1]])
+                b = parse_int(i + 1, script)
                 i += 1
                 stack.append(a % b)
             # String
@@ -488,22 +583,21 @@ def render_img():
                 if len(stack) < 1:
                     raise Exception('Not enought elements on stack to perform catv.')
                 a = str(stack.pop(len(stack) - 1))
-                b = parse_string(script[slice(i + 1, len(script))])
-                i += len(b)
-                b = ' '.join(b).replace('\\w', ' ').replace('\\n', '\n').replace('\\\\', '\\')
+                b = parse_string(i + 1, script)
+                i += 1
                 stack.append(a + b)
             # Logic
             case 'eq':
                 if len(stack) < 2:
                     raise Exception('Not enought elements on stack to perform eq.')
-                a = int(stack.pop(len(stack) - 1))
-                b = int(stack.pop(len(stack) - 1))
+                a = str(stack.pop(len(stack) - 1))
+                b = str(stack.pop(len(stack) - 1))
                 stack.append(1 if a == b else 0)
             case 'eqv':
                 if len(stack) < 1:
                     raise Exception('Not enought elements on stack to perform eqv.')
-                a = int(stack.pop(len(stack) - 1))
-                b = parse_int([script[i + 1]])
+                a = str(stack.pop(len(stack) - 1))
+                b = parse_any(i + 1, script)
                 i += 1
                 stack.append(1 if a == b else 0)
             case 'gt':
@@ -516,7 +610,7 @@ def render_img():
                 if len(stack) < 1:
                     raise Exception('Not enought elements on stack to perform gtv.')
                 a = int(stack.pop(len(stack) - 1))
-                b = parse_int([script[i + 1]])
+                b = parse_int(i + 1, script)
                 i += 1
                 stack.append(1 if a > b else 0)
             case 'lt':
@@ -529,63 +623,50 @@ def render_img():
                 if len(stack) < 1:
                     raise Exception('Not enought elements on stack to perform ltv.')
                 a = int(stack.pop(len(stack) - 1))
-                b = parse_int([script[i + 1]])
+                b = parse_int(i + 1, script)
                 i += 1
                 stack.append(1 if a < b else 0)
             # Control-flow
-            case '{':
-                scope += 1
-            case '}':
-                if scope <= 0:
-                    raise Exception('Cannot close global scope.')
-                scope -= 1
             case 'if':
-                (a, b) = parse_vec2(script[slice(i + 1, len(script))])
+                (a, b) = parse_vec2(i + 1, script)
                 i += 2
                 if not a == b:
                     i += 1
-                    if script[i] == '{':
+                    if script[i].type == '{':
                         x = 1
                         i += 1
                         while i < len(script) and not x == 0:
                             print(script[i])
-                            if script[i] == '}':
+                            if script[i].type == '}':
                                 x -= 1
-                                i += 1
-                            elif script[i] == '{':
+                            elif script[i].type == '{':
                                 x += 1
-                                i += 1
-                            else:
-                                i += len(parse_string(script[slice(i, len(script))]))
-                        if i >= len(script) and not script[i - 1] == '}':
-                            raise Exception('Found unclosed scope')
-                        if script[i] == 'else':
                             i += 1
-                        i -= 1
+                        if i >= len(script) and not script[i - 1].type == '}':
+                            raise Exception('Found unclosed scope')
+                        if script[i].type == 'ID' and script[i].text == 'else':
+                            i += 1
+                        continue
             case 'else':
                 i += 1
-                if script[i] == '{':
+                if script[i].type == '{':
                     x = 1
                     i += 1
                     while i < len(script) and not x == 0:
                         print(script[i])
-                        if script[i] == '}':
+                        if script[i].type == '}':
                             x -= 1
-                            i += 1
-                        elif script[i] == '{':
+                        elif script[i].type == '{':
                             x += 1
-                            i += 1
-                        else:
-                            i += len(parse_string(script[slice(i, len(script))]))
-                    if i >= len(script) and not script[i - 1] == '}':
+                        i += 1
+                    if i >= len(script) and not script[i - 1].type == '}':
                         raise Exception('Found unclosed scope')
-                    i -= 1
+                    continue
             # Animation
             case 'animation':
                 if animation is not None:
                     raise Exception('Cannot define animation inside alrady animated image.')
-                n = parse_int(script[slice(i + 1, len(script))])
-                duration = parse_int(script[slice(i + 2, len(script))])
+                (n, duration) = parse_vec2(i + 1, script)
                 i += 2
                 animation = Animation(image.copy(), i + 1, duration, n)
             case 'iota':

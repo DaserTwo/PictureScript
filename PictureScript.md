@@ -1,14 +1,19 @@
 # ImageScript
 
-ImageScript is a simple scripting language written for images' descripting. It can also describe animations, but it's experimental feature. To generate actual picture use pnggen.py, it is a GUI application that depends on tkinter and pillow, but proper CLI tool will come in its own time.
+ImageScript is a simple scripting language written for images' descripting. It can also describe animations, but it's experimental feature.
+To generate actual picture use pnggen.py, it is a GUI application that depends on tkinter and pillow, but proper CLI tool will come in its own time.
 
 ## Syntax
 
-One important think is that this language is token-based and has no AST. A token is separated by white-characters like space, tab or new-line. The first token must be in a form WxH where W and H are integers and x is literal 'x', this describes width (W) and height (H) of the output. Next tokens may be commands or values. A value must be an argument for a command, stand-alone values are considered syntax errors. The basic syntax is a command as the first token and its arguments as following ones.
+One important think is that this language is token-based and has no AST. A token is separated by white-characters like space, tab or new-line, except from strings that are parsed from double-quote to double-quote including escaping.
+The first token must be in a form WxH where W and H are integers and x is literal 'x', this describes width (W) and height (H) of the output.
+Next tokens may be commands or values. A value must be an argument for a command, stand-alone values are considered syntax errors.
+The basic syntax is a command as the first token and its arguments as following ones.
 
 ## State
 
-A state is a set of variables, a stack, an image and animation. Some commands modify the state, some operate on the stack and some are using the state to draw on image or initialize an animation. There are also special commands that works as coments or changes the control-flow. The following are the state vaialbles and defaults:
+A state is a set of variables, a stack, an image and animation. Some commands modify the state, some operate on the stack and some are using the state to draw on image or initialize an animation.
+There are also special commands that work as coments or changes the control-flow. The following are the state vaiables and defaults:
 - color = 'black'
 - width = 1
 - anchor = 'la'
@@ -21,21 +26,22 @@ A state is a set of variables, a stack, an image and animation. Some commands mo
 
 A value in ImageScript may be one of the following:
 - literal integer (may be nagative), f.e. 1, 100, -55
-- literal string, a single token or, if the first token starts with double-quote, a sequence of tokens to the first one that ends with double-quote. Because there was no way for a string to contain more than one white character beetwen two tokens, there are simple escape sequences: \n (new-line) \w (space) and \\ (slash). Examples: HelloWorld, Hello-World, "Hello World", Hello\wWorld
-- literal color, may be one token with a name, any valid CSS hex (like #333, also with aplha #1234) or rgb with three folowing integers (0-255 each)
-- stack variables, a dollar ($) is considered the top-most value on the stack or 0 (when expected integer) or NULL (when expected string), when after a dollar (in a single token) there is an integer ($N), it will become Nth element on the stack or 0 or NULL.
+- literal string, an not-formated id or a formated string surrounded with double-quotes. There are simple escape sequences: \n (new-line), \r (carriage-return), \t (tab), \w (space) and \\ (slash). Examples: HelloWorld, Hello-World, "Hello World", "Hello\wWorld"
+- literal color, may be one token with a name, any valid CSS hex (like #333, also with aplha #1234) or rgb with three folowing integers (0-255 each), or rgba with four following integers.
+- stack variables, a dollar ($) is considered the top-most value on the stack or 0 (when expected integer) or NULL (when expected string), when after a dollar there is an integer ($N), it will become Nth element on the stack or 0 or NULL.
 
 ## Commands
 
-There are several types of commands: coments, state, drawing, stack, variables, match, string, logic, control-flow and animation commands. The command arguments will be given in a form [NAME:TYPE] there NAME will be used later in description and TYPE is one of these: INT, STRING, COLOR, ANY or a keyword-list separated by '|'.
+There are several types of commands: coments, state, drawing, stack, variables, match, string, logic, control-flow and animation commands.
+The command arguments will be given in a form [NAME:TYPE] there NAME will be used later in description and TYPE is one of these: INT, STRING, COLOR, ANY or a keyword-list separated by '|'.
 
-### The coment command (#... [s:STRING])
+### The coment command (# [s:ANY])
 
-When a token starts with a hash (#) it, and the folowing string are ignored. The string (s) is printed on the console output.
+A hash (#) is a comment command, it takes one token tat will be ignored. The s is printed on the console output.
 
 ``` ImageScript
 # comment
-#this'll_be_ignored "And this'll be printed"
+# "This'll be printed"
 ```
 
 ### State commands
@@ -370,7 +376,7 @@ Concatinates two strings.
 
 There is the same situation as with math commands... Also the results of the folowing commands are always 0 or 1 (false or true) and are pushed to teh stack. Operants are always of type INT.
 
-#### eq, eqv [v:INT]
+#### eq, eqv [v:ANY]
 
 Pushes 1 if operants are equal, 0 otherwise.
 
@@ -433,7 +439,7 @@ Pushes the n value given to the animation command, this is possible only in anim
 #### An example of an animation:
 
 ``` ImageScript
-# "Rally common animation frquently uses as an example of 'how to create an animation in pillow'"
+# "Rally common animation frquently used as an example of 'how to create an animation in pillow'"
 
 animation 100 50
 
